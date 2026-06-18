@@ -1,5 +1,5 @@
 {
-  description = "Nix packaging scaffold for cf (The Cloudflare CLI)";
+  description = "Nix package for cf (The Cloudflare CLI)";
 
   nixConfig = {
     extra-substituters = [ "https://cache.nixos.org" ];
@@ -19,52 +19,26 @@
 
         src = pkgs.fetchurl {
           url = "https://registry.npmjs.org/cf/-/cf-${version}.tgz";
-          hash = pkgs.lib.fakeHash;
-        };
-
-        bunDeps = pkgs.stdenv.mkDerivation {
-          name = "cf-bun-deps";
-          inherit src;
-          nativeBuildInputs = [ pkgs.bun pkgs.cacert ];
-          buildPhase = ''
-            export BUN_INSTALL_CACHE_DIR=$TMPDIR/bun-cache
-            bun install --production --ignore-scripts
-          '';
-          installPhase = ''
-            mkdir -p $out
-            if [ -d node_modules ]; then
-              cp -r node_modules $out/
-            fi
-          '';
-          dontFixup = true;
-          outputHashMode = "recursive";
-          outputHashAlgo = "sha256";
-          outputHash = pkgs.lib.fakeHash;
+          hash = "sha256-tRyAHwUnUs6cen8J6FbjKEUC/7KvkZdLnol975V5fAU=";
         };
 
         cf = pkgs.stdenv.mkDerivation {
           pname = "cf";
           inherit version src;
-          nativeBuildInputs = [ pkgs.bun pkgs.makeWrapper ];
-          
-          buildPhase = ''
-            if [ -d ${bunDeps}/node_modules ]; then
-              cp -r ${bunDeps}/node_modules ./
-              chmod -R +w node_modules
-            fi
-          '';
+          nativeBuildInputs = [ pkgs.makeWrapper ];
 
+          # cf ships pre-bundled in dist/ — no node_modules needed
           installPhase = ''
             mkdir -p $out/libexec/cf $out/bin
             cp -r . $out/libexec/cf
-            
+
             makeWrapper ${pkgs.bun}/bin/bun $out/bin/cf \
-              --add-flags "$out/libexec/cf/bin/cf"
+              --add-flags "$out/libexec/cf/dist/index.mjs"
           '';
 
           meta = with pkgs.lib; {
-            description = "The Cloudflare CLI";
-            homepage = "https://npmjs.com/package/cf";
+            description = "The Cloudflare CLI — unified CLI for the entire Cloudflare platform";
+            homepage = "https://blog.cloudflare.com/cf-cli-local-explorer/";
             license = licenses.mit;
             mainProgram = "cf";
           };
