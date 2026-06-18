@@ -7,28 +7,60 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, ... }:
-    let
-      systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
-      forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f {
+  outputs = { self, nixpkgs, utils }:
+    utils.lib.eachDefaultSystem (system:
+      let
         pkgs = import nixpkgs { inherit system; };
-      });
-    in {
-      packages = forAllSystems ({ pkgs }: {
-        default = pkgs.buildNpmPackage rec {
+
+        version = "0.0.6";
+
+        src = pkgs.fetchurl {
+          url = "https://registry.npmjs.org/cf/-/cf-${version}.tgz";
+          hash = pkgs.lib.fakeHash;
+        };
+
+        bunDeps = pkgs.stdenv.mkDerivation {
+          name = "cf-bun-deps";
+          inherit src;
+          nativeBuildInputs = [ pkgs.bun pkgs.cacert ];
+          buildPhase = ''
+            export BUN_INSTALL_CACHE_DIR=$TMPDIR/bun-cache
+            bun install --production --ignore-scripts
+          '';
+          installPhase = ''
+            mkdir -p $out
+            if [ -d node_modules ]; then
+              cp -r node_modules $out/
+            fi
+          '';
+          dontFixup = true;
+          outputHashMode = "recursive";
+          outputHashAlgo = "sha256";
+          outputHash = pkgs.lib.fakeHash;
+        };
+
+        cf = pkgs.stdenv.mkDerivation {
           pname = "cf";
-          version = "0.0.6";
+          inherit version src;
+          nativeBuildInputs = [ pkgs.bun pkgs.makeWrapper ];
+          
+          buildPhase = ''
+            if [ -d ${bunDeps}/node_modules ]; then
+              cp -r ${bunDeps}/node_modules ./
+              chmod -R +w node_modules
+            fi
+          '';
 
-          src = pkgs.fetchurl {
-            url = "https://registry.npmjs.org/cf/-/cf-${version}.tgz";
-            hash = pkgs.lib.fakeHash;
-          };
-
-          # buildNpmPackage requires a package-lock.json. If the tarball doesn't have one,
-          # you may need to commit a package-lock.json to this repository and inject it during postPatch.
-          npmDepsHash = pkgs.lib.fakeHash;
+          installPhase = ''
+            mkdir -p $out/libexec/cf $out/bin
+            cp -r . $out/libexec/cf
+            
+            makeWrapper ${pkgs.bun}/bin/bun $out/bin/cf \
+              --add-flags "$out/libexec/cf/bin/cf"
+          '';
 
           meta = with pkgs.lib; {
             description = "The Cloudflare CLI";
@@ -37,12 +69,15 @@
             mainProgram = "cf";
           };
         };
-      });
-
-      devShells = forAllSystems ({ pkgs }: {
-        default = pkgs.mkShell {
+      in
+      {
+        packages = {
+          inherit cf;
+          default = cf;
+        };
+        devShells.default = pkgs.mkShell {
           packages = with pkgs; [ nix-update ];
         };
-      });
-    };
+      }
+    );
 }
