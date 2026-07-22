@@ -33,7 +33,7 @@
             cp -r . $out/libexec/cf
 
             makeWrapper ${pkgs.bun}/bin/bun $out/bin/cf \
-              --add-flags "$out/libexec/cf/dist/index.mjs"
+              --add-flags "$out/libexec/cf/bin/cf"
           '';
 
           meta = with pkgs.lib; {
