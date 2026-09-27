@@ -40,6 +40,8 @@ stdenv.mkDerivation {
   src = npmTarball;
   nativeBuildInputs = [ bun ];
   dontConfigure = true;
+  dontStrip = true;
+  dontPatchELF = true;
 
   unpackPhase = ''
     mkdir package
@@ -67,6 +69,7 @@ try {
 }
 EOF
     bun build --compile --minify entry.mjs --outfile "$TMPDIR/cf-compiled"
+    "$TMPDIR/cf-compiled" --version || true
   '';
 
   installPhase = ''
