@@ -68,7 +68,7 @@ try {
   process.exit(1);
 }
 EOF
-    bun build --compile --minify entry.mjs --outfile "$TMPDIR/cf-compiled"
+    bun build --compile --minify --target=bun-linux-x64 entry.mjs --outfile "$TMPDIR/cf-compiled"
     "$TMPDIR/cf-compiled" --version || true
   '';
 
