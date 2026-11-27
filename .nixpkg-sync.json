@@ -1,0 +1,9 @@
+{
+  "kind": "npm",
+  "upstream": "cf",
+  "version_file": "flake.nix",
+  "version_grep": "version = \"[0-9]+\\.[0-9]+\\.[0-9]+(-[A-Za-z0-9.]+)?\"",
+  "pinned_paths": [],
+  "pinned_flake_regex": "registry.npmjs.org",
+  "sync_script": "bash scripts/sync-from-npm.sh"
+}

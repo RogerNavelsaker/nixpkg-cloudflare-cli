@@ -26,11 +26,11 @@
       let
         pkgs = import nixpkgs { inherit system; };
 
-        version = "1.0.0-rc.5";
+        version = "1.0.0-rc.6";
 
         src = pkgs.fetchurl {
           url = "https://registry.npmjs.org/cf/-/cf-${version}.tgz";
-          hash = "sha256-snrvc1ByzZI31la5xPzKz0zf5arRO3rt9CGNmm+sNFw=";
+          hash = "sha256-IHdDn1toqes0iRHCaO7GzkmuUp0RTJjj+r8caEtLTlA=";
         };
 
         cf = pkgs.stdenv.mkDerivation {
